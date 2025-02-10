@@ -13,6 +13,7 @@ type Config struct {
 	HTTPServer HTTPServerConfig `yaml:"http_server"`
 	Database   DatabaseConfig   `yaml:"database"`
 	JWT        JWTConfig        `yaml:"jwt"`
+	Migrations MigrationsConfig `yaml:"migrations"`
 }
 
 // http server struct
@@ -33,8 +34,12 @@ type DatabaseConfig struct {
 
 // jwt token settings
 type JWTConfig struct {
-	Secret        string `yaml:"-" env:"JWT_SECRET" env-required:"true"`
-	ExpireMinutes int    `yaml:"token_ttl" env-default:"60"`
+	Secret   string `yaml:"-" env:"JWT_SECRET" env-required:"true"`
+	TokenTTL int    `yaml:"token_ttl" env-default:"60"`
+}
+
+type MigrationsConfig struct {
+	Path string `yaml:"path" env-default:"./migrations"`
 }
 
 // if there are not any settings we will exit

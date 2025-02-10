@@ -5,9 +5,11 @@
   idle_timeout: "60s"
   user: "admin"
  database:
-  host: "localhost"
+  host: "db"
   port: 5432
   user: "postgres"
   name: "shop"
  jwt:
   token_ttl: 60
+ migrations:
+  path: "./migrations"

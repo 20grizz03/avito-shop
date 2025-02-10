@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: shop
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d shop"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: migrator
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CONFIG_PATH: /app/config/local.yaml
+      DB_PASSWORD: postgres123
+      JWT_SECRET: secret123
+    command: ["/app/migrator", "-migrations-path=/app/migrations"]
+
+volumes:
+  postgres_data:
