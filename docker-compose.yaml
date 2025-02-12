@@ -18,6 +18,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+    networks:
+      - internal
 
   migrator:
     build:
@@ -32,6 +34,12 @@ services:
       DB_PASSWORD: postgres123
       JWT_SECRET: secret123
     command: ["/app/migrator", "-migrations-path=/app/migrations"]
+    networks:
+      - internal
+
 
 volumes:
   postgres_data:
+networks:
+  internal:
+    driver: bridge

@@ -15,7 +15,7 @@ import (
 	"github.com/linemk/avito-shop/internal/config"
 )
 
-// buildDSN собирает строку подключения (DSN) из отдельных параметров.
+// buildDSN собирает строку подключения (DSN) из отдельных параметров
 func buildMigrateDSN(dbCfg config.DatabaseConfig, migrationTable string, dbPassword string) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?sslmode=disable&x-migrations-table=%s",
@@ -23,7 +23,7 @@ func buildMigrateDSN(dbCfg config.DatabaseConfig, migrationTable string, dbPassw
 	)
 }
 
-// buildQueryDSN собирает DSN для обычных SQL запросов (без x-migrations-table)
+// buildQueryDSN собирает DSN для обычных SQL запросов
 func buildQueryDSN(dbCfg config.DatabaseConfig, dbPassword string) string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
