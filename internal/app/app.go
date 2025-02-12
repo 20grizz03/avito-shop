@@ -14,16 +14,16 @@ type App struct {
 	Config *config.Config
 	Logger *slog.Logger
 	DB     *sql.DB
-	// TODO: другие сервисы, например, AuthService, MerchService и т.д.
 }
 
 // NewApp создаёт новый экземпляр App
 func NewApp(log *slog.Logger, cfg *config.Config) (*App, error) {
-	
+
 	dbPassword := os.Getenv("DB_PASSWORD")
 	if dbPassword == "" {
 		return nil, fmt.Errorf("DB_PASSWORD environment variable is not set")
 	}
+	// реализуем подключение к БД через DSN
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.Database.User,
 		dbPassword,

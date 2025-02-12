@@ -5,13 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	security "github.com/linemk/avito-shop/internal/jwtNew"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
-	ssv "github.com/linemk/avito-shop/internal/auth"      // пакет, где реализована функция NewToken
-	"github.com/linemk/avito-shop/internal/domain/models" // конкретная реализация модели User
+	"github.com/linemk/avito-shop/internal/domain/models"
 	"github.com/linemk/avito-shop/internal/storage"
+	"golang.org/x/crypto/bcrypt"
 	"log/slog"
 )
 
@@ -75,7 +74,7 @@ func (a *AuthService) Login(ctx context.Context, email, password string) (string
 	}
 
 	// Генерация JWT-токена. Функция auth.NewToken внутри сама загружает секрет из переменной окружения JWT_SECRET.
-	token, err := ssv.NewToken(ctx, user, a.tokenTTL)
+	token, err := security.NewToken(ctx, user, a.tokenTTL)
 	if err != nil {
 		logger.Error("failed to generate token", slog.Any("error", err))
 		return "", fmt.Errorf("%s: failed to generate token: %w", op, err)

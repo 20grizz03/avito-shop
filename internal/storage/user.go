@@ -15,6 +15,7 @@ type UserStorage interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	// Создать нового пользователя
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
+	GetUserByID(ctx context.Context, id int64) (*models.User, error)
 }
 
 type userRepository struct {
@@ -25,9 +26,10 @@ func NewUserRepository(db *sql.DB) *userRepository {
 	return &userRepository{db: db}
 }
 
+// получение уже существующего пользователя
 func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	user := &models.User{}
-	row := r.db.QueryRowContext(ctx, "SELECT id, email, pass_hash, coin_balance FROM users WHERE email = $1", email)
+	row := r.db.QueryRowContext(ctx, "SELECT id, username, pass_hash, coin_balance FROM users WHERE username = $1", email)
 	if err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.CoinBalance); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -40,7 +42,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 func (r *userRepository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	var id int64
 	err := r.db.QueryRowContext(ctx,
-		"INSERT INTO users (email, pass_hash, coin_balance) VALUES ($1, $2, $3) RETURNING id",
+		"INSERT INTO users (username, pass_hash, coin_balance) VALUES ($1, $2, $3) RETURNING id",
 		user.Email, user.PassHash, user.CoinBalance,
 	).Scan(&id)
 	if err != nil {

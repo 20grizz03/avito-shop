@@ -9,26 +9,25 @@ import (
 	"log/slog"
 )
 
-// AuthRequest представляет структуру запроса для аутентификации с тегами валидации.
+// AuthRequest представляет структуру запроса для аутентификации с тегами валидации
 type AuthRequest struct {
 	Username string `json:"username" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-// AuthResponse представляет структуру ответа с JWT-токеном.
+// AuthResponse представляет структуру ответа с JWT-токеном
 type AuthResponse struct {
 	Token string `json:"token"`
 }
 
 var validate = validator.New()
 
-// AuthHandler – HTTP-обработчик для аутентификации, принимает логгер и экземпляр AuthService.
+// AuthHandler – HTTP-обработчик для аутентификации, принимает логгер и экземпляр AuthService
 func AuthHandler(log *slog.Logger, authService *service.AuthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.AuthHandler"
 		logger := log.With(slog.String("op", op))
 
-		// Декодирование JSON-запроса
 		var req AuthRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			logger.Error("invalid request: decoding error", slog.Any("error", err))
