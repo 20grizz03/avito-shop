@@ -54,7 +54,7 @@ func main() {
 	authService := service.NewAuthService(application.Logger, userRepo, time.Duration(application.Config.JWT.TokenTTL)*time.Minute)
 	buyService := service.NewBuyService(application.Logger, application.DB, userRepo, merchRepo, orderRepo)
 	// Создаем сервис для получения информации (InfoService)
-	infoService := service.NewInfoService(application.Logger, userRepo) // Предполагается, что NewInfoService реализован
+	infoService := service.NewInfoService(application.Logger, userRepo, orderRepo) // Предполагается, что NewInfoService реализован
 
 	// Регистрация публичного эндпоинта для аутентификации
 	router.Post("/api/auth", handlers.AuthHandler(application.Logger, authService))

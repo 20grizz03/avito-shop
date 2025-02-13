@@ -15,15 +15,16 @@ type InfoService interface {
 
 // infoService — конкретная реализация InfoService.
 type infoService struct {
-	log      *slog.Logger
-	userRepo storage.UserStorage
-	// Здесь можно добавить дополнительные репозитории для заказов, транзакций и инвентаря.
+	log       *slog.Logger
+	userRepo  storage.UserStorage
+	orderRepo storage.OrderStorage
 }
 
-func NewInfoService(log *slog.Logger, userRepo storage.UserStorage) InfoService {
+func NewInfoService(log *slog.Logger, userRepo storage.UserStorage, orderRepo storage.OrderStorage) InfoService {
 	return &infoService{
-		log:      log,
-		userRepo: userRepo,
+		log:       log,
+		userRepo:  userRepo,
+		orderRepo: orderRepo,
 	}
 }
 
@@ -54,6 +55,9 @@ type HistoryEntry struct {
 // Здесь для примера мы просто возвращаем баланс из таблицы пользователей. В реальной реализации
 // необходимо обращаться к соответствующим репозиториям для инвентаря и транзакций.
 func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse, error) {
+	const op = "service.InfoService.GetInfo"
+	s.log.Info("getting info", slog.String("op", op), slog.Int64("userID", userID))
+
 	user, err := s.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
 		s.log.Error("failed to get user by id", slog.Any("error", err))
@@ -61,7 +65,7 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 	}
 
 	// Получаем заказы пользователя
-	orders, err := s.userRepo.GetOrdersByUserID(ctx, userID)
+	orders, err := s.orderRepo.GetOrdersByUserID(ctx, userID)
 	if err != nil {
 		s.log.Error("failed to get orders", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to get orders: %w", err)
@@ -85,7 +89,7 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 	// Для упрощения примера, инвентарь и история транзакций возвращаются пустыми.
 	resp := &InfoResponse{
 		Coins:       user.CoinBalance,
-		Inventory:   []InventoryItem{},                                               // Здесь нужно собрать информацию о купленном мерче
+		Inventory:   inventory,                                                       // Здесь нужно собрать информацию о купленном мерче
 		CoinHistory: CoinHistory{Received: []HistoryEntry{}, Sent: []HistoryEntry{}}, // Здесь - транзакции
 	}
 	return resp, nil

@@ -51,7 +51,7 @@ func (s *buyService) Buy(ctx context.Context, userID int64, item string) error {
 		return fmt.Errorf("%s: failed to begin transaction: %w", op, err)
 	}
 
-	// Получаем мерч по названию
+	// Получаем мерч по названию через транзакцию
 	merch, err := s.merchRepo.GetMerchByName(ctx, tx, item)
 	if err != nil {
 		tx.Rollback()
@@ -59,7 +59,7 @@ func (s *buyService) Buy(ctx context.Context, userID int64, item string) error {
 		return fmt.Errorf("%s: failed to get merch: %w", op, err)
 	}
 
-	// Получаем пользователя
+	// Получаем пользователя через транзакцию
 	user, err := s.userRepo.GetUserByIDtx(ctx, tx, userID)
 	if err != nil {
 		tx.Rollback()
