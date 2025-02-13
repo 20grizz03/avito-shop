@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/linemk/avito-shop/internal/storage"
-	"log/slog"
 )
 
 // SendCoinService определяет интерфейс для перевода монет.

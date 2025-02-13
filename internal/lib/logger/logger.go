@@ -1,10 +1,10 @@
 package logger
 
 import (
-	"github.com/fatih/color"
 	"log/slog"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/linemk/avito-shop/internal/lib/logger/handlers/slogpretty"
 )
 

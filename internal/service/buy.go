@@ -5,9 +5,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/linemk/avito-shop/internal/storage"
-	"log/slog"
 )
 
 type BuyService interface {

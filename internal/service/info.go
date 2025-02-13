@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/linemk/avito-shop/internal/storage"
-	"log/slog"
 )
 
 // InfoService определяет интерфейс для получения информации о пользователе.

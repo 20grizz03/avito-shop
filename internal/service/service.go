@@ -5,13 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	security "github.com/linemk/avito-shop/internal/jwtNew"
+	"log/slog"
 	"time"
 
 	"github.com/linemk/avito-shop/internal/domain/models"
+	security "github.com/linemk/avito-shop/internal/jwtNew"
 	"github.com/linemk/avito-shop/internal/storage"
 	"golang.org/x/crypto/bcrypt"
-	"log/slog"
 )
 
 type AuthService struct {
