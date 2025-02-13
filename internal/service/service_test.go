@@ -15,8 +15,6 @@ import (
 	"log/slog"
 )
 
-// ================= Fake User Repo =================
-
 type fakeUserRepo struct {
 	users map[string]*models.User // ключ — email
 }
@@ -64,8 +62,6 @@ func (f *fakeUserRepo) UpdateUserBalance(ctx context.Context, tx *sql.Tx, id int
 	return storage.ErrUserNotFound
 }
 
-// ================= Fake Order Repo =================
-
 type fakeOrderRepo struct {
 	orders map[int64][]*models.Order // ключ: userID
 }
@@ -88,8 +84,6 @@ func (f *fakeOrderRepo) CreateOrder(ctx context.Context, tx *sql.Tx, userID int6
 	return nil
 }
 
-// ================= Fake Coin Transaction Repo =================
-
 type fakeCoinTxRepo struct {
 	transactions map[int64][]*models.CoinTransaction // ключ: userID
 }
@@ -111,8 +105,6 @@ func (f *fakeCoinTxRepo) CreateTransaction(ctx context.Context, tx *sql.Tx, user
 	// Не требуется для теста InfoService
 	return nil
 }
-
-// ================= Тесты для AuthService =================
 
 func TestAuthService_Login_NewUser(t *testing.T) {
 	os.Setenv("JWT_SECRET", "testsecret")
