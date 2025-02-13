@@ -3,6 +3,9 @@ package service_test
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -12,7 +15,6 @@ import (
 	"github.com/linemk/avito-shop/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"log/slog"
 )
 
 type fakeUserRepo struct {
@@ -82,6 +84,24 @@ func (f *fakeOrderRepo) GetOrdersByUserID(ctx context.Context, userID int64) ([]
 func (f *fakeOrderRepo) CreateOrder(ctx context.Context, tx *sql.Tx, userID int64, merchID int64, quantity int, totalPrice int) error {
 	// Не требуется для теста InfoService
 	return nil
+}
+
+type fakeMerchRepo struct {
+	merchs map[string]*models.Merch // ключ — название мерча
+}
+
+var _ storage.MerchStorage = (*fakeMerchRepo)(nil)
+
+func newFakeMerchRepo() *fakeMerchRepo {
+	return &fakeMerchRepo{merchs: make(map[string]*models.Merch)}
+}
+
+func (f *fakeMerchRepo) GetMerchByName(ctx context.Context, tx *sql.Tx, name string) (*models.Merch, error) {
+	merch, ok := f.merchs[name]
+	if !ok {
+		return nil, errors.New("merch not found")
+	}
+	return merch, nil
 }
 
 type fakeCoinTxRepo struct {
@@ -272,4 +292,213 @@ func TestInfoService_GetInfo_UserNotFound(t *testing.T) {
 	ctx := context.Background()
 	_, err := infoSvc.GetInfo(ctx, 999) // Пользователь с таким ID не существует
 	assert.Error(t, err, "Expected error for non-existing user")
+}
+
+func TestBuyService_Buy_Success(t *testing.T) {
+	// Используем sqlmock для создания фиктивной БД.
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Ожидаем вызов BeginTx и Commit.
+	mock.ExpectBegin()
+	mock.ExpectCommit()
+
+	// Создаем fake репозитории.
+	fakeUserRepo := newFakeUserRepo()
+	fakeMerchRepo := newFakeMerchRepo()
+	fakeOrderRepo := newFakeOrderRepo()
+
+	// Добавляем пользователя с балансом 1000, ID=1.
+	user := &models.User{
+		ID:          1,
+		Email:       "test@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 1000,
+	}
+	fakeUserRepo.users[user.Email] = user
+
+	// Добавляем мерч "t-shirt" с ценой 80.
+	fakeMerchRepo.merchs["t-shirt"] = &models.Merch{
+		ID:    1,
+		Name:  "t-shirt",
+		Price: 80,
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	buySvc := service.NewBuyService(logger, db, fakeUserRepo, fakeMerchRepo, fakeOrderRepo)
+
+	// Вызываем метод Buy.
+	err = buySvc.Buy(context.Background(), user.ID, "t-shirt")
+	assert.NoError(t, err, "Buy should succeed")
+
+	// Проверяем, что баланс пользователя обновился: 1000 - 80 = 920.
+	updatedUser, err := fakeUserRepo.GetUserByID(context.Background(), user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, 920, updatedUser.CoinBalance, "User balance should be updated to 920")
+
+	// Проверяем ожидания sqlmock.
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err, "sqlmock expectations should be met")
+}
+
+func TestBuyService_Buy_InsufficientFunds(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Ожидаем вызов BeginTx и Commit не произойдет, а вместо этого будет Rollback.
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	fakeUserRepo := newFakeUserRepo()
+	fakeMerchRepo := newFakeMerchRepo()
+	fakeOrderRepo := newFakeOrderRepo()
+
+	// Пользователь с балансом 50, ID=1.
+	user := &models.User{
+		ID:          1,
+		Email:       "test@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 50,
+	}
+	fakeUserRepo.users[user.Email] = user
+
+	// Мерч "t-shirt" с ценой 80.
+	fakeMerchRepo.merchs["t-shirt"] = &models.Merch{
+		ID:    1,
+		Name:  "t-shirt",
+		Price: 80,
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	buySvc := service.NewBuyService(logger, db, fakeUserRepo, fakeMerchRepo, fakeOrderRepo)
+
+	err = buySvc.Buy(context.Background(), user.ID, "t-shirt")
+	assert.Error(t, err, "Buy should fail due to insufficient funds")
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err, "sqlmock expectations should be met")
+}
+
+func TestSendCoinService_Success(t *testing.T) {
+	// Используем sqlmock для создания фиктивной БД.
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Ожидаем вызов BeginTx и Commit.
+	mock.ExpectBegin()
+	mock.ExpectCommit()
+
+	// Создаем фиктивный репозиторий пользователей.
+	fakeUserRepo := newFakeUserRepo()
+	fakeCoinTxRepo := newFakeCoinTxRepo()
+
+	// Добавляем отправителя и получателя.
+	sender := &models.User{
+		ID:          1,
+		Email:       "sender@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 1000,
+	}
+	receiver := &models.User{
+		ID:          2,
+		Email:       "receiver@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 500,
+	}
+	fakeUserRepo.users[sender.Email] = sender
+	fakeUserRepo.users[receiver.Email] = receiver
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	sendCoinSvc := service.NewSendCoinService(logger, db, fakeUserRepo, fakeCoinTxRepo)
+
+	// Перевод 100 монет от отправителя к получателю.
+	err = sendCoinSvc.SendCoin(context.Background(), sender.ID, receiver.Email, 100)
+	assert.NoError(t, err, "SendCoin should succeed with valid data")
+
+	// Проверяем, что баланс отправителя уменьшился, а получателя увеличился.
+	updatedSender, err := fakeUserRepo.GetUserByID(context.Background(), sender.ID)
+	assert.NoError(t, err)
+	updatedReceiver, err := fakeUserRepo.GetUserByEmail(context.Background(), receiver.Email)
+	assert.NoError(t, err)
+	assert.Equal(t, 900, updatedSender.CoinBalance, "Sender balance should be updated to 900")
+	assert.Equal(t, 600, updatedReceiver.CoinBalance, "Receiver balance should be updated to 600")
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err, "sqlmock expectations should be met")
+}
+
+func TestSendCoinService_SelfTransfer(t *testing.T) {
+	// Создаем фиктивную БД, хотя в этом тесте транзакция не дойдёт до вызова BeginTx.
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Ожидаем вызов BeginTx и затем Rollback.
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	fakeUserRepo := newFakeUserRepo()
+	fakeCoinTxRepo := newFakeCoinTxRepo()
+
+	// Добавляем пользователя с балансом 1000.
+	user := &models.User{
+		ID:          1,
+		Email:       "user@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 1000,
+	}
+	fakeUserRepo.users[user.Email] = user
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	sendCoinSvc := service.NewSendCoinService(logger, db, fakeUserRepo, fakeCoinTxRepo)
+
+	// Пытаемся перевести монеты самому себе.
+	err = sendCoinSvc.SendCoin(context.Background(), user.ID, user.Email, 100)
+	assert.Error(t, err, "SendCoin should fail when transferring coins to self")
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err, "sqlmock expectations should be met")
+}
+
+func TestSendCoinService_InsufficientFunds(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// Ожидаем вызов BeginTx и Rollback, поскольку средств недостаточно.
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	fakeUserRepo := newFakeUserRepo()
+	fakeCoinTxRepo := newFakeCoinTxRepo()
+
+	// Добавляем отправителя с балансом 50.
+	sender := &models.User{
+		ID:          1,
+		Email:       "sender@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 50,
+	}
+	// Получатель с балансом 500.
+	receiver := &models.User{
+		ID:          2,
+		Email:       "receiver@example.com",
+		PassHash:    []byte("hashed"),
+		CoinBalance: 500,
+	}
+	fakeUserRepo.users[sender.Email] = sender
+	fakeUserRepo.users[receiver.Email] = receiver
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	sendCoinSvc := service.NewSendCoinService(logger, db, fakeUserRepo, fakeCoinTxRepo)
+
+	// Пытаемся перевести 100 монет, но у отправителя недостаточно средств.
+	err = sendCoinSvc.SendCoin(context.Background(), sender.ID, receiver.Email, 100)
+	assert.Error(t, err, "SendCoin should fail due to insufficient funds")
+
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err, "sqlmock expectations should be met")
 }

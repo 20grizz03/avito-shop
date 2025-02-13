@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -21,6 +20,7 @@ import (
 	"github.com/linemk/avito-shop/internal/lib/logger/handlers/urllog"
 	"github.com/linemk/avito-shop/internal/service"
 	"github.com/linemk/avito-shop/internal/storage"
+	"github.com/pkg/errors"
 )
 
 func main() {

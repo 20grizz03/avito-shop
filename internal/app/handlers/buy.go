@@ -3,12 +3,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
 	"github.com/linemk/avito-shop/internal/service"
-	"log/slog"
 )
 
 // BuyResponse — структура ответа при успешной покупке.

@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
+	"log/slog"
 	"net/http"
 
+	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
 	"github.com/linemk/avito-shop/internal/service"
-	"log/slog"
 )
 
 // SendCoinRequest представляет входной JSON для перевода монет.
