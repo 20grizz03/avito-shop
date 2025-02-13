@@ -12,7 +12,7 @@ import (
 
 type contextKey string
 
-const userIDKey contextKey = "userID"
+const UserIDKey contextKey = "userID"
 
 // NewJWTMiddleware создаёт middleware для проверки JWT, секрет берётся из переменной окружения.
 func NewJWTMiddleware() func(http.Handler) http.Handler {
@@ -48,7 +48,7 @@ func NewJWTMiddleware() func(http.Handler) http.Handler {
 				http.Error(w, "invalid token", http.StatusUnauthorized)
 				return
 			}
-			
+
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
 				http.Error(w, "invalid token claims", http.StatusUnauthorized)
@@ -61,7 +61,7 @@ func NewJWTMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 			// Устанавливаем userID в контекст запроса
-			ctx := context.WithValue(r.Context(), userIDKey, int64(userID))
+			ctx := context.WithValue(r.Context(), UserIDKey, int64(userID))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -69,6 +69,6 @@ func NewJWTMiddleware() func(http.Handler) http.Handler {
 
 // FromContext извлекает userID из контекста.
 func FromContext(ctx context.Context) (int64, bool) {
-	id, ok := ctx.Value(userIDKey).(int64)
+	id, ok := ctx.Value(UserIDKey).(int64)
 	return id, ok
 }

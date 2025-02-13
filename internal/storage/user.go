@@ -16,6 +16,8 @@ type UserStorage interface {
 	// Создать нового пользователя
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	GetUserByID(ctx context.Context, id int64) (*models.User, error)
+	GetUserByIDtx(ctx context.Context, tx *sql.Tx, id int64) (*models.User, error)
+	UpdateUserBalance(ctx context.Context, tx *sql.Tx, id int64, newBalance int) error
 }
 
 type userRepository struct {
@@ -49,5 +51,32 @@ func (r *userRepository) CreateUser(ctx context.Context, user *models.User) (*mo
 		return nil, err
 	}
 	user.ID = id
+	return user, nil
+}
+
+func (r *userRepository) UpdateUserBalance(ctx context.Context, tx *sql.Tx, id int64, newBalance int) error {
+	res, err := tx.ExecContext(ctx, "UPDATE users SET coin_balance = $1 WHERE id = $2", newBalance, id)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *userRepository) GetUserByIDtx(ctx context.Context, tx *sql.Tx, id int64) (*models.User, error) {
+	user := &models.User{}
+	row := tx.QueryRowContext(ctx, "SELECT id, username, pass_hash, coin_balance FROM users WHERE id = $1", id)
+	if err := row.Scan(&user.ID, &user.Email, &user.PassHash, &user.CoinBalance); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
 	return user, nil
 }

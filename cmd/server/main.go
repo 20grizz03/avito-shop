@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
-	"github.com/linemk/avito-shop/internal/service"
-	"github.com/linemk/avito-shop/internal/storage"
+
 	"github.com/pkg/errors"
 	"log/slog"
 	"net/http"
@@ -18,8 +16,11 @@ import (
 	"github.com/linemk/avito-shop/internal/app"
 	"github.com/linemk/avito-shop/internal/app/handlers"
 	"github.com/linemk/avito-shop/internal/config"
+	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
 	"github.com/linemk/avito-shop/internal/lib/logger"
 	"github.com/linemk/avito-shop/internal/lib/logger/handlers/urllog"
+	"github.com/linemk/avito-shop/internal/service"
+	"github.com/linemk/avito-shop/internal/storage"
 )
 
 func main() {
@@ -47,7 +48,11 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	userRepo := storage.NewUserRepository(application.DB)
+	merchRepo := storage.NewMerchRepository(application.DB)
+	orderRepo := storage.NewOrderRepository(application.DB)
+
 	authService := service.NewAuthService(application.Logger, userRepo, time.Duration(application.Config.JWT.TokenTTL)*time.Minute)
+	buyService := service.NewBuyService(application.Logger, application.DB, userRepo, merchRepo, orderRepo)
 	// Создаем сервис для получения информации (InfoService)
 	infoService := service.NewInfoService(application.Logger, userRepo) // Предполагается, что NewInfoService реализован
 
@@ -58,14 +63,12 @@ func main() {
 		jwtMW := jwtmiddleware.NewJWTMiddleware()
 		r.Use(jwtMW)
 		r.Get("/api/info", handlers.InfoHandler(application.Logger, infoService))
-		//// Эндпоинт для получения информации о монетах, инвентаре и истории транзакций
-		// r.Get("/api/info", handlers.InfoHandler(application.Logger, Info))
-		//
+
 		//// Эндпоинт для отправки монет другому пользователю
 		//r.Post("/api/sendCoin", handlers.SendCoinHandler(log))
 		//
-		//// Эндпоинт для покупки мерча (параметр в path — название товара)
-		//r.Get("/api/buy/{item}", handlers.BuyHandler(log))
+		// Эндпоинт для покупки мерча (параметр в path — название товара)
+		r.Get("/api/buy/{item}", handlers.BuyHandler(application.Logger, buyService))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.HTTPServer.Address))

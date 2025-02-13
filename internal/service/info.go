@@ -60,6 +60,28 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
+	// Получаем заказы пользователя
+	orders, err := s.userRepo.GetOrdersByUserID(ctx, userID)
+	if err != nil {
+		s.log.Error("failed to get orders", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to get orders: %w", err)
+	}
+
+	// Группируем заказы по типу мерча
+	inventoryMap := make(map[string]int)
+	for _, order := range orders {
+		inventoryMap[order.MerchName] += order.Quantity
+	}
+
+	// Преобразуем результат в массив InventoryItem
+	var inventory []InventoryItem
+	for merch, quantity := range inventoryMap {
+		inventory = append(inventory, InventoryItem{
+			Type:     merch,
+			Quantity: quantity,
+		})
+	}
+
 	// Для упрощения примера, инвентарь и история транзакций возвращаются пустыми.
 	resp := &InfoResponse{
 		Coins:       user.CoinBalance,
