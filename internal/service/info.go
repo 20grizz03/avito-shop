@@ -15,16 +15,18 @@ type InfoService interface {
 
 // infoService — конкретная реализация InfoService.
 type infoService struct {
-	log       *slog.Logger
-	userRepo  storage.UserStorage
-	orderRepo storage.OrderStorage
+	log        *slog.Logger
+	userRepo   storage.UserStorage
+	orderRepo  storage.OrderStorage
+	coinTxRepo storage.CoinTransactionStorage
 }
 
-func NewInfoService(log *slog.Logger, userRepo storage.UserStorage, orderRepo storage.OrderStorage) InfoService {
+func NewInfoService(log *slog.Logger, userRepo storage.UserStorage, orderRepo storage.OrderStorage, coinTxRepo storage.CoinTransactionStorage) InfoService {
 	return &infoService{
-		log:       log,
-		userRepo:  userRepo,
-		orderRepo: orderRepo,
+		log:        log,
+		userRepo:   userRepo,
+		orderRepo:  orderRepo,
+		coinTxRepo: coinTxRepo,
 	}
 }
 
@@ -86,12 +88,36 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 		})
 	}
 
+	// Получаем историю транзакций пользователя через CoinTransactionStorage
+	transactions, err := s.coinTxRepo.GetTransactionsByUserID(ctx, userID)
+	var received []HistoryEntry
+	var sent []HistoryEntry
+	if err != nil {
+		s.log.Error("failed to get coin transactions", slog.Any("error", err))
+		// Если ошибка получения транзакций, можно продолжить с пустой историей
+	} else {
+		for _, tx := range transactions {
+			switch tx.Type {
+			case "transfer_received":
+				received = append(received, HistoryEntry{
+					FromUser: "", // при необходимости можно получить имя отправителя
+					Amount:   tx.Amount,
+				})
+			case "transfer_sent":
+				sent = append(sent, HistoryEntry{
+					ToUser: "",        // при необходимости можно получить имя получателя
+					Amount: tx.Amount, // предполагаем, что tx.Amount хранится как положительное значение, если нет, можно умножить на -1
+				})
+			}
+		}
+	}
+
 	// Для упрощения примера, инвентарь и история транзакций возвращаются пустыми.
 	resp := &InfoResponse{
 		Coins:     user.CoinBalance,
 		Inventory: inventory,
-		// TODO Здесь нужно собрать информацию о купленном мерче
-		CoinHistory: CoinHistory{Received: []HistoryEntry{}, Sent: []HistoryEntry{}}, // Здесь - транзакции
+		// TODO Здесь нужно собрать информацию об историях перевода
+		CoinHistory: CoinHistory{Received: received, Sent: sent}, // Здесь - транзакции
 	}
 	return resp, nil
 }

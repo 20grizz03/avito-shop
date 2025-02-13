@@ -50,10 +50,13 @@ func main() {
 	userRepo := storage.NewUserRepository(application.DB)
 	merchRepo := storage.NewMerchRepository(application.DB)
 	orderRepo := storage.NewOrderRepository(application.DB)
+	coinTxRepo := storage.NewCoinTransactionRepository(application.DB)
 
 	authService := service.NewAuthService(application.Logger, userRepo, time.Duration(application.Config.JWT.TokenTTL)*time.Minute)
 	buyService := service.NewBuyService(application.Logger, application.DB, userRepo, merchRepo, orderRepo)
-	infoService := service.NewInfoService(application.Logger, userRepo, orderRepo) // Предполагается, что NewInfoService реализован
+	sendCoinService := service.NewSendCoinService(application.Logger, application.DB, userRepo, coinTxRepo)
+
+	infoService := service.NewInfoService(application.Logger, userRepo, orderRepo, coinTxRepo) // Предполагается, что NewInfoService реализован
 
 	// эндпоинт для аутентификации
 	router.Post("/api/auth", handlers.AuthHandler(application.Logger, authService))
@@ -63,9 +66,9 @@ func main() {
 		r.Use(jwtMW)
 		r.Get("/api/info", handlers.InfoHandler(application.Logger, infoService))
 
-		//// эндпоинт для отправки монет другому пользователю
-		//r.Post("/api/sendCoin", handlers.SendCoinHandler(log))
-		//
+		// эндпоинт для отправки монет другому пользователю
+		r.Post("/api/sendCoin", handlers.SendCoinHandler(application.Logger, sendCoinService))
+
 		// эндпоинт для покупки мерча (параметр в path — название товара)
 		r.Get("/api/buy/{item}", handlers.BuyHandler(application.Logger, buyService))
 	})
