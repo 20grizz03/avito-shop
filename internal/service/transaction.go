@@ -54,7 +54,9 @@ func (s *sendCoinService) SendCoin(ctx context.Context, fromUserID int64, toUser
 	// Получаем отправителя через метод GetUserByIDtx (используем транзакцию)
 	sender, err := s.userRepo.GetUserByIDtx(ctx, tx, fromUserID)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to get sender", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to get sender: %w", op, err)
 	}
@@ -62,7 +64,9 @@ func (s *sendCoinService) SendCoin(ctx context.Context, fromUserID int64, toUser
 	// Получаем получателя по email (username)
 	receiver, err := s.userRepo.GetUserByEmail(ctx, toUser)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		if errors.Is(err, storage.ErrUserNotFound) {
 			logger.Error("receiver not found", slog.String("toUser", toUser))
 			return fmt.Errorf("%s: receiver not found", op)
@@ -73,14 +77,18 @@ func (s *sendCoinService) SendCoin(ctx context.Context, fromUserID int64, toUser
 
 	// проверяем, не отправитель ли пытается сам себе перевести деньги
 	if fromUserID == receiver.ID {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("cannot transfer coins to yourself")
 		return fmt.Errorf("%s: cannot transfer coins to yourself", op)
 	}
 
 	// Проверяем, достаточно ли средств у отправителя
 	if sender.CoinBalance < amount {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Warn("insufficient funds", slog.Int("senderBalance", sender.CoinBalance))
 		return fmt.Errorf("%s: insufficient funds", op)
 	}
@@ -88,7 +96,9 @@ func (s *sendCoinService) SendCoin(ctx context.Context, fromUserID int64, toUser
 	// Обновляем баланс отправителя: списываем монеты
 	newSenderBalance := sender.CoinBalance - amount
 	if err := s.userRepo.UpdateUserBalance(ctx, tx, fromUserID, newSenderBalance); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to update sender balance", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to update sender balance: %w", op, err)
 	}
@@ -96,21 +106,27 @@ func (s *sendCoinService) SendCoin(ctx context.Context, fromUserID int64, toUser
 	// Обновляем баланс получателя: прибавляем монеты
 	newReceiverBalance := receiver.CoinBalance + amount
 	if err := s.userRepo.UpdateUserBalance(ctx, tx, receiver.ID, newReceiverBalance); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to update receiver balance", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to update receiver balance: %w", op, err)
 	}
 
 	// Регистрируем транзакцию для отправителя (отрицательная сумма, тип "transfer_sent")
 	if err := s.coinTxRepo.CreateTransaction(ctx, tx, fromUserID, -amount, "transfer_sent", &receiver.ID); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to record sender transaction", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to record sender transaction: %w", op, err)
 	}
 
 	// Регистрируем транзакцию для получателя (положительная сумма, тип "transfer_received")
 	if err := s.coinTxRepo.CreateTransaction(ctx, tx, receiver.ID, amount, "transfer_received", &fromUserID); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to record receiver transaction", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to record receiver transaction: %w", op, err)
 	}

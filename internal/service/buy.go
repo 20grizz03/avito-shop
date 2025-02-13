@@ -54,7 +54,9 @@ func (s *buyService) Buy(ctx context.Context, userID int64, item string) error {
 	// Получаем мерч по названию через транзакцию
 	merch, err := s.merchRepo.GetMerchByName(ctx, tx, item)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to get merch", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to get merch: %w", op, err)
 	}
@@ -62,14 +64,18 @@ func (s *buyService) Buy(ctx context.Context, userID int64, item string) error {
 	// Получаем пользователя через транзакцию
 	user, err := s.userRepo.GetUserByIDtx(ctx, tx, userID)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to get user", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to get user: %w", op, err)
 	}
 
 	// Проверяем, достаточно ли средств
 	if user.CoinBalance < merch.Price {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Warn("insufficient funds", slog.Int("balance", user.CoinBalance), slog.Int("price", merch.Price))
 		return fmt.Errorf("%s: insufficient funds", op)
 	}
@@ -77,14 +83,18 @@ func (s *buyService) Buy(ctx context.Context, userID int64, item string) error {
 	// Обновляем баланс пользователя
 	newBalance := user.CoinBalance - merch.Price
 	if err := s.userRepo.UpdateUserBalance(ctx, tx, userID, newBalance); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to update user balance", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to update user balance: %w", op, err)
 	}
 
 	// Создаем заказ
 	if err := s.orderRepo.CreateOrder(ctx, tx, userID, merch.ID, 1, merch.Price); err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
+		}
 		logger.Error("failed to create order", slog.Any("error", err))
 		return fmt.Errorf("%s: failed to create order: %w", op, err)
 	}

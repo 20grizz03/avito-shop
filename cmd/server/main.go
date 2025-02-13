@@ -64,6 +64,7 @@ func main() {
 	router.Group(func(r chi.Router) {
 		jwtMW := jwtmiddleware.NewJWTMiddleware()
 		r.Use(jwtMW)
+		// эндпоинт для инфо
 		r.Get("/api/info", handlers.InfoHandler(application.Logger, infoService))
 
 		// эндпоинт для отправки монет другому пользователю
