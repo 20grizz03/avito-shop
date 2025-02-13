@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-// Order представляет заказ, созданный при покупке мерча.
+// Order представляет заказ, созданный при покупке мерча
 type Order struct {
 	ID         int64     `json:"id"`
 	UserID     int64     `json:"user_id"`

@@ -53,10 +53,9 @@ func main() {
 
 	authService := service.NewAuthService(application.Logger, userRepo, time.Duration(application.Config.JWT.TokenTTL)*time.Minute)
 	buyService := service.NewBuyService(application.Logger, application.DB, userRepo, merchRepo, orderRepo)
-	// Создаем сервис для получения информации (InfoService)
 	infoService := service.NewInfoService(application.Logger, userRepo, orderRepo) // Предполагается, что NewInfoService реализован
 
-	// Регистрация публичного эндпоинта для аутентификации
+	// эндпоинт для аутентификации
 	router.Post("/api/auth", handlers.AuthHandler(application.Logger, authService))
 
 	router.Group(func(r chi.Router) {
@@ -64,10 +63,10 @@ func main() {
 		r.Use(jwtMW)
 		r.Get("/api/info", handlers.InfoHandler(application.Logger, infoService))
 
-		//// Эндпоинт для отправки монет другому пользователю
+		//// эндпоинт для отправки монет другому пользователю
 		//r.Post("/api/sendCoin", handlers.SendCoinHandler(log))
 		//
-		// Эндпоинт для покупки мерча (параметр в path — название товара)
+		// эндпоинт для покупки мерча (параметр в path — название товара)
 		r.Get("/api/buy/{item}", handlers.BuyHandler(application.Logger, buyService))
 	})
 

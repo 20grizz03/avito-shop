@@ -28,7 +28,7 @@ func NewInfoService(log *slog.Logger, userRepo storage.UserStorage, orderRepo st
 	}
 }
 
-// InfoResponse — структура, возвращаемая сервисом, аналогична той, что в транспортном слое.
+// InfoResponse — структура, возвращаемая сервисом, аналогична той, что в транспортном слое
 type InfoResponse struct {
 	Coins       int             `json:"coins"`
 	Inventory   []InventoryItem `json:"inventory"`
@@ -88,8 +88,9 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 
 	// Для упрощения примера, инвентарь и история транзакций возвращаются пустыми.
 	resp := &InfoResponse{
-		Coins:       user.CoinBalance,
-		Inventory:   inventory,                                                       // Здесь нужно собрать информацию о купленном мерче
+		Coins:     user.CoinBalance,
+		Inventory: inventory,
+		// TODO Здесь нужно собрать информацию о купленном мерче
 		CoinHistory: CoinHistory{Received: []HistoryEntry{}, Sent: []HistoryEntry{}}, // Здесь - транзакции
 	}
 	return resp, nil
