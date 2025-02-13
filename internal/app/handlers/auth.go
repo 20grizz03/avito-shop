@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/linemk/avito-shop/internal/service"
-	"log/slog"
 )
 
 // AuthRequest представляет структуру запроса для аутентификации с тегами валидации

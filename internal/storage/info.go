@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/linemk/avito-shop/internal/domain/models"
 )
 

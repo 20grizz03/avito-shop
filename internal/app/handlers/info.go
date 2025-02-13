@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/linemk/avito-shop/internal/jwtNew/jwtmiddleware"
 	"github.com/linemk/avito-shop/internal/service"
-	"log/slog"
 )
 
 // InfoResponse — структура ответа, соответствующая OpenAPI.
