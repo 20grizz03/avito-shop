@@ -1,4 +1,3 @@
-// internal/service/auth.go
 package service
 
 import (
@@ -26,6 +25,10 @@ func NewAuthService(log *slog.Logger, userRepo storage.UserStorage, tokenTTL tim
 		userRepo: userRepo,
 		tokenTTL: tokenTTL,
 	}
+}
+
+type AuthServiceInterface interface {
+	Login(ctx context.Context, username, password string) (string, error)
 }
 
 // Login осуществляет аутентификацию пользователя.
