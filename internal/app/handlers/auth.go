@@ -23,7 +23,7 @@ type AuthResponse struct {
 var validate = validator.New()
 
 // AuthHandler – HTTP-обработчик для аутентификации, принимает логгер и экземпляр AuthService
-func AuthHandler(log *slog.Logger, authService *service.AuthService) http.HandlerFunc {
+func AuthHandler(log *slog.Logger, authService service.AuthServiceInterface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.AuthHandler"
 		logger := log.With(slog.String("op", op))

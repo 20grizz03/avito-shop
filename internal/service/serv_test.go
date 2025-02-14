@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
 	"log/slog"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/linemk/avito-shop/internal/domain/models"
 	"github.com/linemk/avito-shop/internal/service"
 	"github.com/linemk/avito-shop/internal/storage"
