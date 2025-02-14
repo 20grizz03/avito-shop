@@ -201,8 +201,6 @@ func TestAuthService_Login_ExistingUser_WrongPassword(t *testing.T) {
 	assert.Empty(t, token, "Token should be empty on failed login")
 }
 
-// ================= Тесты для InfoService =================
-
 func TestInfoService_GetInfo_Success(t *testing.T) {
 	// Создаем фиктивные репозитории.
 	userRepo := newFakeUserRepo()

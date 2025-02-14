@@ -99,14 +99,28 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 		for _, tx := range transactions {
 			switch tx.Type {
 			case "transfer_received":
+				fromName := ""
+				if tx.RelatedUserID != nil {
+					fromUser, err := s.userRepo.GetUserByID(ctx, *tx.RelatedUserID)
+					if err == nil {
+						fromName = fromUser.Email
+					}
+				}
 				received = append(received, HistoryEntry{
-					FromUser: "", // при необходимости можно получить имя отправителя
+					FromUser: fromName,
 					Amount:   tx.Amount,
 				})
 			case "transfer_sent":
+				toName := ""
+				if tx.RelatedUserID != nil {
+					toUser, err := s.userRepo.GetUserByID(ctx, *tx.RelatedUserID)
+					if err == nil {
+						toName = toUser.Email
+					}
+				}
 				sent = append(sent, HistoryEntry{
-					ToUser: "",        // при необходимости можно получить имя получателя
-					Amount: tx.Amount, // предполагаем, что tx.Amount хранится как положительное значение, если нет, можно умножить на -1
+					ToUser: toName,
+					Amount: tx.Amount,
 				})
 			}
 		}
@@ -114,9 +128,8 @@ func (s *infoService) GetInfo(ctx context.Context, userID int64) (*InfoResponse,
 
 	// Для упрощения примера, инвентарь и история транзакций возвращаются пустыми.
 	resp := &InfoResponse{
-		Coins:     user.CoinBalance,
-		Inventory: inventory,
-		// TODO Здесь нужно собрать информацию об историях перевода
+		Coins:       user.CoinBalance,
+		Inventory:   inventory,
 		CoinHistory: CoinHistory{Received: received, Sent: sent}, // Здесь - транзакции
 	}
 	return resp, nil
