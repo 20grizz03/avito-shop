@@ -27,7 +27,8 @@ services:
       dockerfile: Dockerfile
     container_name: migrator
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       CONFIG_PATH: /app/config/local.yaml
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -42,7 +43,8 @@ services:
       dockerfile: Dockerfile
     container_name: server
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       CONFIG_PATH: /app/config/local.yaml
       DB_PASSWORD: ${POSTGRES_PASSWORD}
