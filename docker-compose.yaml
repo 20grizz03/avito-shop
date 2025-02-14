@@ -6,7 +6,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: shop
     ports:
       - "5432:5432"
@@ -30,8 +30,8 @@ services:
       - db
     environment:
       CONFIG_PATH: /app/config/local.yaml
-      DB_PASSWORD: postgres123
-      JWT_SECRET: secret123
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     command: ["/app/migrator", "-migrations-path=/app/migrations"]
     networks:
       - internal
@@ -45,8 +45,8 @@ services:
       - db
     environment:
       CONFIG_PATH: /app/config/local.yaml
-      DB_PASSWORD: postgres123
-      JWT_SECRET: secret123
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     command: [ "/app/server" ]
     ports:
       - "8080:8080"
