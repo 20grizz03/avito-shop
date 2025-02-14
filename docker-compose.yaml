@@ -27,8 +27,7 @@ services:
       dockerfile: Dockerfile
     container_name: migrator
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     environment:
       CONFIG_PATH: /app/config/local.yaml
       DB_PASSWORD: postgres123
@@ -37,6 +36,22 @@ services:
     networks:
       - internal
 
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: server
+    depends_on:
+      - db
+    environment:
+      CONFIG_PATH: /app/config/local.yaml
+      DB_PASSWORD: postgres123
+      JWT_SECRET: secret123
+    command: [ "/app/server" ]
+    ports:
+      - "8080:8080"
+    networks:
+      - internal
 
 volumes:
   postgres_data:
