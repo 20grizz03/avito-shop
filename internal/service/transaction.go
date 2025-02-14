@@ -113,8 +113,8 @@ func (s *sendCoinService) SendCoin(ctx context.Context, fromUserID int64, toUser
 		return fmt.Errorf("%s: failed to update receiver balance: %w", op, err)
 	}
 
-	// Регистрируем транзакцию для отправителя (отрицательная сумма, тип "transfer_sent")
-	if err := s.coinTxRepo.CreateTransaction(ctx, tx, fromUserID, -amount, "transfer_sent", &receiver.ID); err != nil {
+	// Регистрируем транзакцию для отправителя (положительная сумма, тип "transfer_sent")
+	if err := s.coinTxRepo.CreateTransaction(ctx, tx, fromUserID, amount, "transfer_sent", &receiver.ID); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
 			logger.Error("transaction rollback failed", slog.Any("error", rbErr))
 		}
